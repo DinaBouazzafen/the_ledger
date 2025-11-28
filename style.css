@@ -1,0 +1,73 @@
+  @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+    .title-text {
+    font-family: "Press Start 2P", monospace;
+}
+
+* {
+    pointer-events: none;
+}
+
+
+    body {
+        margin: 0;
+        padding: 0;
+        background: #050608;
+        color: #fff;
+        font-family: Consolas, monospace;
+        font-size: 18px;
+        overflow: hidden;
+    }
+
+    /* Top Bar – like your screenshot */
+    .topbar {
+        border-bottom: 1px solid #424242;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .bar-line {
+        height: 3px;
+        background: white;
+        flex-grow: 1;
+    }
+    .bar-block {
+        width: 100px;
+        height: 20px;
+    }
+
+    /* Terminal container */
+    .terminal-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    .terminal-window {
+        border: 1px solid #2f2f2f;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 20px;
+        height: 500px;
+        overflow-y: auto;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
+        white-space: pre-wrap;
+    }
+    h1 {
+    font-family: "Press Start 2P", monospace;
+    letter-spacing: 0.25em;
+}
+    /* Blinking Cursor */
+    .cursor {
+        display: inline-block;
+        width: 10px;
+        background: #fff;
+        margin-left: 3px;
+        animation: blink 0.6s infinite;
+    }
+
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0; }
+        100% { opacity: 1; }
+    }
