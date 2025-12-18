@@ -1,3 +1,5 @@
+>> 01_POLITICIZATION
+
 Politicization begins when power quietly outranks expertise:
 new appointees in key positions,
 rules rewritten,
