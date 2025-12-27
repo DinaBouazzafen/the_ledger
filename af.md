@@ -20,4 +20,13 @@ regimes that rewarded false results and punished real ones.
 Today the methods are softer,
 but the pattern is uncomfortably familiar.
 
-Type "RESIST POLITICIZATION" to list the symptoms.
+────────────────────────────────
+
+Status: PATTERN DETECTED
+
+Next:
+  Type `RESIST POLITICIZATION` to scan symptoms.
+
+Commands:
+  `ls`   — available actions
+  `back` — return to previous layer

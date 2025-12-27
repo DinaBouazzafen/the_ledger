@@ -35,6 +35,14 @@ SYSTEM NOTE:
     Politicization does not announce itself.
     It arrives disguised as efficiency, safety, and consensus.
 
+────────────────────────────────
+
+SCAN COMPLETE.
+Confidence: HIGH
+
 NEXT ACTION REQUIRED.
 
-Type "TRACE THE MONEY" to examine the funding layer.
+Commands:
+  Type `TRACE THE MONEY` to access funding records.
+  Type `ls` to view available actions.
+  Type `back` to return.

@@ -15,4 +15,11 @@ This archive contains three corrupted directories:
 03_CENSORSHIP
     Why the financial trail vanishes as soon as you follow it.
 
-Type "DISMANTLE SYSTEM" to proceed.
+────────────────────────────────
+
+Status: READ-ONLY
+Integrity: COMPROMISED
+Access Level: GUEST
+
+Commands: 
+  Type `ls` to list directories.

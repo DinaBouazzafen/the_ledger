@@ -25,4 +25,14 @@ Secrecy protects power, not science.
 When knowledge is treated like capital,
 access becomes privilege.
 
-Type “EXIT THE LOOP” to close the archive.
+────────────────────────────────
+
+Status: CENSORSHIP LAYER
+
+Access here is intentional.
+Opacity is policy.
+
+Commands:
+  `EXIT THE LOOP` — terminate session
+  `ls`            — show available actions
+  `back`          — return (limited)
