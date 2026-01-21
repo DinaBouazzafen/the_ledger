@@ -84,7 +84,7 @@ $(function () {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const escapeHtml = (s) =>
-    String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;");
+    String(s).replaceAll("<", "&lt;");
 
   function clearInputLine() {
     typed = "";
@@ -204,7 +204,7 @@ $(function () {
   }
 
   /* -----------------------------
-     INTRO: video stays until SPACE
+     INTRO
   ----------------------------- */
   function showIntroVideo() {
     terminal.html("");
