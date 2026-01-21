@@ -15,7 +15,7 @@ $(function () {
     "03": false,
   };
 
-  // dev override
+  // dev override (hidden)
   const DEV_PREFIX = ":";
 
   const $overlay = $("#videoOverlay");
@@ -24,11 +24,13 @@ $(function () {
   let autoFollow = true;
 
   // typewriting
-  const TYPE_SPEED = 50;   
+  const TYPE_SPEED = 50;
   const TYPE_JITTER = 10;
   let isTyping = false;
 
-
+  // intro gating (video stays until SPACE)
+  let waitingForSpace = true;
+  let introVideoActive = false;
 
   /* -----------------------------
      SCROLL
@@ -55,44 +57,39 @@ $(function () {
      TOPBAR
   ----------------------------- */
   function syncTopbar(screen) {
-  const blocks = document.querySelectorAll(".bar-block");
+    const blocks = document.querySelectorAll(".bar-block");
+    blocks.forEach((b) => (b.style.background = "#1a1a1a"));
 
-  // reset all
-  blocks.forEach(b => {
-    b.style.background = "#1a1a1a";
-  });
-
-  // activate based on screen
-  switch (screen) {
-    case "intro":
-      document.querySelector('[data-step="intro"]').style.background = "white";
-      break;
-
-    case "politics":
-    case "capitalism":
-    case "syptoms":
-      document.querySelector('[data-step="01"]').style.background = "#a7a6a6";
-      break;
-
-    case "ligo":
-      document.querySelector('[data-step="02"]').style.background = "#717070";
-      break;
-
-    case "censorship":
-      document.querySelector('[data-step="03"]').style.background = "#313131";
-      break;
+    switch (screen) {
+      case "intro":
+        document.querySelector('[data-step="intro"]').style.background = "white";
+        break;
+      case "politics":
+      case "capitalism":
+      case "syptoms":
+        document.querySelector('[data-step="01"]').style.background = "#a7a6a6";
+        break;
+      case "ligo":
+        document.querySelector('[data-step="02"]').style.background = "#717070";
+        break;
+      case "censorship":
+        document.querySelector('[data-step="03"]').style.background = "#313131";
+        break;
+    }
   }
-}
-  
+
   /* -----------------------------
      UTIL
   ----------------------------- */
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const escapeHtml = (s) =>
-    String(s)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
+    String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;");
+
+  function clearInputLine() {
+    typed = "";
+    $("#typed").text("");
+  }
 
   function print(cmd) {
     terminal.append("<br>&gt; " + escapeHtml(cmd));
@@ -100,7 +97,7 @@ $(function () {
   }
 
   function printBlock(text) {
-    terminal.append("<br>" + escapeHtml(text).replaceAll("\n","<br>"));
+    terminal.append("<br>" + escapeHtml(text).replaceAll("\n", "<br>"));
     scrollBottom();
   }
 
@@ -112,14 +109,14 @@ $(function () {
       "  " + reason,
       "",
       "TRACE:",
-      "  /dev/codelostbytrumpsgreed"
+      "  /dev/codelostbytrumpsgreed",
     ];
     for (const l of lines) {
       terminal.append("<br>" + escapeHtml(l));
       scrollBottom();
       await sleep(120);
     }
-    for (let i=0;i<4;i++){
+    for (let i = 0; i < 4; i++) {
       terminal.append("<br>...");
       scrollBottom();
       await sleep(90);
@@ -127,131 +124,183 @@ $(function () {
   }
 
   function pushScreen(s) {
-  screenStack.push(currentScreen);
-  currentScreen = s;
-  syncTopbar(currentScreen);
-}
+    screenStack.push(currentScreen);
+    currentScreen = s;
+    syncTopbar(currentScreen);
+  }
 
   function goBack() {
-  if (!screenStack.length) return false;
-  currentScreen = screenStack.pop();
-  syncTopbar(currentScreen);
-  reloadScreen();
-  return true;
-}
-
-function clearInputLine() {
-  typed = "";
-  $("#typed").text("");
-}
+    if (!screenStack.length) return false;
+    currentScreen = screenStack.pop();
+    syncTopbar(currentScreen);
+    reloadScreen();
+    return true;
+  }
 
   /* -----------------------------
      TYPEWRITER
   ----------------------------- */
   async function typewriter(text, speed = TYPE_SPEED) {
-  isTyping = true;
-  terminal.html("");
-  autoFollow = true;
+    isTyping = true;
 
-  const safe = escapeHtml(text);
+    terminal.html("");
+    autoFollow = true;
 
-  for (let c of safe) {
-    terminal.append(c === "\n" ? "<br>" : c);
-    scrollBottom();
-    await sleep(speed + Math.random() * TYPE_JITTER);
+    const safe = escapeHtml(text);
+
+    for (let c of safe) {
+      terminal.append(c === "\n" ? "<br>" : c);
+      scrollBottom();
+      await sleep(speed + Math.random() * TYPE_JITTER);
+    }
+
+    isTyping = false;
   }
 
-  isTyping = false;
-}
+  async function typewriterAppend(text, speed = TYPE_SPEED) {
+    isTyping = true;
 
-async function typewriterAppend(text, speed = TYPE_SPEED) {
-  const safe = escapeHtml(text);
+    const safe = escapeHtml(text);
 
-  for (let c of safe) {
-    terminal.append(c === "\n" ? "<br>" : c);
-    scrollBottom();
-    await sleep(speed + Math.random() * TYPE_JITTER);
+    for (let c of safe) {
+      terminal.append(c === "\n" ? "<br>" : c);
+      scrollBottom();
+      await sleep(speed + Math.random() * TYPE_JITTER);
+    }
+
+    isTyping = false;
   }
-}
 
   /* -----------------------------
      VIDEO
   ----------------------------- */
-  function showVideo(src, ms=5000) {
-    return new Promise(res=>{
+  function showVideo(src, ms = 5000) {
+    return new Promise((res) => {
       if (!$overlay.length || !video) return res();
+
       $overlay.show();
       video.pause();
+      video.loop = false;
       video.src = src;
       video.load();
       video.currentTime = 0;
-      const done=()=>{
+
+      const done = () => {
         video.pause();
         $overlay.hide();
         res();
       };
+
       video.onended = done;
-      video.play().catch(()=>{});
+      video.play().catch(() => {});
       setTimeout(done, ms);
     });
   }
 
   async function playVideoThenLoad(v, f) {
     await showVideo(v);
-    $.get(f).done(d => typewriter(d));
+    const d = await $.get(f);
+    await typewriter(d);
+  }
+
+  /* -----------------------------
+     INTRO: video stays until SPACE
+  ----------------------------- */
+  function showIntroVideo() {
+    terminal.html("");
+    autoFollow = true;
+
+    waitingForSpace = true;
+    introVideoActive = true;
+
+    if ($overlay.length && video) {
+      $overlay.show();
+      video.pause();
+      video.loop = true;
+      video.src = "videos/intro.mp4";
+      video.load();
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    }
+
+    terminal.append(
+      "<br><br><span style='opacity:.6'>[ PRESS SPACE TO ENTER ]</span>"
+    );
+    scrollBottom();
+  }
+
+  async function enterIntro() {
+    if (!introVideoActive) return;
+
+    waitingForSpace = false;
+    introVideoActive = false;
+
+    if (video) {
+      video.pause();
+      video.loop = false;
+    }
+    if ($overlay.length) $overlay.hide();
+
+    terminal.html("");
+    const d = await $.get("./intro.md");
+    await typewriter(d);
   }
 
   /* -----------------------------
      LS
   ----------------------------- */
   function showLS() {
-  const lines = [
-    "COMMANDS:",
-    "  ls                       list system commands",
-    "  back                     return to previous location",
-    "  clear                    clear terminal",
-    "",
-    "ESCALATION PHRASES:",
-  ];
+    const lines = [
+      "COMMANDS:",
+      "  ls                       list system commands",
+      "  back                     return to previous location",
+      "  clear                    clear terminal",
+      "",
+      "ESCALATION PHRASES:",
+    ];
 
-  // context-aware escalation hints
-  if (!permissions["01"]) {
-    lines.push("  DISMANTLE SYSTEM          request access to 01_POLITICIZATION");
-  }
-  if (permissions["01"] && !permissions["02"]) {
-    lines.push("  DONE WITH CAPITALISM      request access to 02_LIGO_FUNDS");
-  }
-  if (permissions["02"] && !permissions["03"]) {
-    lines.push("  CENSORSHIP IS SO 1984     request access to 03_CENSORSHIP");
-  }
+    if (!permissions["01"]) {
+      lines.push(
+        "  DISMANTLE SYSTEM          request access to 01_POLITICIZATION"
+      );
+    }
+    if (permissions["01"] && !permissions["02"]) {
+      lines.push(
+        "  DONE WITH CAPITALISM      request access to 02_LIGO_FUNDS"
+      );
+    }
+    if (permissions["02"] && !permissions["03"]) {
+      lines.push(
+        "  CENSORSHIP IS SO 1984     request access to 03_CENSORSHIP"
+      );
+    }
 
-  lines.push(
-    "",
-    "DIRECTORIES:",
-    `  01_POLITICIZATION         ${permissions["01"] ? "[OPEN]" : "[LOCKED]"}`,
-    `  02_LIGO_FUNDS             ${permissions["02"] ? "[OPEN]" : "[LOCKED]"}`,
-    `  03_CENSORSHIP             ${permissions["03"] ? "[OPEN]" : "[LOCKED]"}`
-  );
-
-  if (currentScreen === "ligo") {
     lines.push(
       "",
-      "LIGO ARCHIVE COMMANDS:",
-      "  archive                  show all years",
-      "  milestones               milestones only",
-      "  YYYY                     isolate year"
+      "DIRECTORIES:",
+      `  01_POLITICIZATION         ${permissions["01"] ? "[OPEN]" : "[LOCKED]"}`,
+      `  02_LIGO_FUNDS             ${permissions["02"] ? "[OPEN]" : "[LOCKED]"}`,
+      `  03_CENSORSHIP             ${permissions["03"] ? "[OPEN]" : "[LOCKED]"}`
     );
+
+    if (currentScreen === "ligo") {
+      lines.push(
+        "",
+        "LIGO ARCHIVE QUERIES:",
+        "  archive                  show all years",
+        "  milestones               milestones only",
+        "  YYYY                     isolate year"
+      );
+    }
+
+    printBlock(lines.join("\n"));
   }
-
-  printBlock(lines.join("\n"));
-}
-
 
   /* -----------------------------
      OPEN DIR
   ----------------------------- */
-  async function openDir(dir, force=false) {
-    if (!["01","02","03"].includes(dir)) {
+  async function openDir(dir, force = false) {
+    if (!["01", "02", "03"].includes(dir)) {
       return fakeDenied("NO SUCH DIRECTORY");
     }
 
@@ -259,285 +308,342 @@ async function typewriterAppend(text, speed = TYPE_SPEED) {
       return fakeDenied("LOCKED: " + dir);
     }
 
-    if (dir==="01") {
+    if (dir === "01") {
       pushScreen("politics");
-      return playVideoThenLoad("videos/pol.mp4","./politics.md");
+      return playVideoThenLoad("videos/pol.mp4", "./politics.md");
     }
 
-    if (dir==="02") {
+    if (dir === "02") {
       pushScreen("ligo");
       await showVideo("videos/ligo.mp4");
-      return showLigoBoot("archive");
+      return showLigoBoot();
     }
 
-    if (dir==="03") {
+    if (dir === "03") {
       pushScreen("censorship");
-      return playVideoThenLoad("videos/censor.mp4","./censor.md");
+      return playVideoThenLoad("videos/censor.mp4", "./censor.md");
     }
   }
 
   /* -----------------------------
      LIGO
   ----------------------------- */
+  let ligoRecords = null;
+  let ligoTailHint = null;
 
-let ligoRecords = null;
-let ligoTailHint = null;
+  async function loadLigoDataOnce() {
+    if (ligoRecords) return;
 
-// Parse ligo.md into structured records
-async function loadLigoDataOnce() {
-  if (ligoRecords) return;
+    const raw = await $.get("./ligo.md");
+    const lines = raw.split(/\r?\n/);
 
-  const raw = await $.get("./ligo.md");
-  const lines = raw.split(/\r?\n/);
+    ligoRecords = [];
+    let i = 0;
 
-  ligoRecords = [];
-  let i = 0;
+    while (i < lines.length) {
+      const line = lines[i].trim();
 
-  while (i < lines.length) {
-    const line = lines[i].trim();
+      if (line.startsWith('Type "CENSORSHIP') || line.startsWith("Type \"CENSORSHIP")) {
+        ligoTailHint = line;
+        break;
+      }
 
-    if (line.startsWith("Type \"CENSORSHIP")) {
-      ligoTailHint = line;
-      break;
-    }
+      if (!/^\d{4}/.test(line)) {
+        i++;
+        continue;
+      }
 
-    if (!/^\d{4}/.test(line)) {
+      const year = line;
       i++;
-      continue;
-    }
 
-    const year = line;
-    i++;
-
-    while (i < lines.length && lines[i].trim() === "") i++;
-
-    const money = lines[i]?.trim() || "";
-    i++;
-
-    const textLines = [];
-    while (i < lines.length && !/^\d{4}/.test(lines[i])) {
-      if (lines[i].trim() === "") break;
-      textLines.push(lines[i]);
+      while (i < lines.length && lines[i].trim() === "") i++;
+      const money = lines[i]?.trim() || "";
       i++;
-    }
 
-    ligoRecords.push({
-      year,
-      money,
-      text: textLines.join("\n").trim(),
-    });
+      const textLines = [];
+      while (i < lines.length && !/^\d{4}/.test(lines[i])) {
+        if (lines[i].trim() === "") break;
+        textLines.push(lines[i]);
+        i++;
+      }
+
+      ligoRecords.push({
+        year,
+        money,
+        text: textLines.join("\n").trim(),
+      });
+
+      while (i < lines.length && lines[i].trim() === "") i++;
+    }
   }
-}
 
-async function showLigoBoot() {
-  terminal.html("");
-  autoFollow = true;
+  async function showLigoBoot() {
+    terminal.html("");
+    autoFollow = true;
 
-  const bootText = [
-    ">> 02_LIGO_FUNDS",
-    "STATUS: READ-ONLY",
-    "INTEGRITY: DEGRADED",
-    "RECORD RANGE: 1984–2026",
-    "",
-    "AVAILABLE QUERIES:",
-    "  archive",
-    "  milestones",
-    "  YYYY",
-    "",
-    "Type a query."
-  ].join("\n");
+    const bootText = [
+      ">> 02_LIGO_FUNDS",
+      "STATUS: READ-ONLY",
+      "INTEGRITY: DEGRADED",
+      "RECORD RANGE: 1984–2026",
+      "",
+      "AVAILABLE QUERIES:",
+      "  archive",
+      "  milestones",
+      "  YYYY",
+      "",
+      "Type a query.",
+    ].join("\n");
 
-  await typewriter(bootText);
-}
+    await typewriter(bootText);
+  }
 
+  function isMilestone(r) {
+    return /GW|DETECTION|APPROV|UPGRADE|AWARD|CUT/i.test(r.text);
+  }
 
-function isMilestone(r) {
-  return /GW|DETECTION|APPROV|UPGRADE|AWARD|CUT/i.test(r.text);
-}
+  async function renderLigoResults(records) {
+    terminal.html("");
+    autoFollow = true;
 
-async function renderLigoResults(records) {
-  terminal.html("");
-  autoFollow = true;
-
-  for (const r of records) {
-    await typewriter(
-      [
+    for (const r of records) {
+      await typewriter([
         r.year,
         r.money,
         r.text,
         ""
-      ].join("\n"),
-      TYPE_SPEED
-    );
-    await sleep(300);
-  }
-
-  if (ligoTailHint) {
-    printBlock("\nNOTE:");
-    printBlock("  Some records reference restricted material.");
-    printBlock("  " + ligoTailHint);
-  }
-
-  printBlock("\nTip: ls | back");
-}
-
-async function renderLigoStack(records) {
-  terminal.html("");
-  autoFollow = true;
-
-  await typewriter(
-    [
-      ">> 02_LIGO_FUNDS",
-      "MODE: MILESTONES",
-      "--------------------------------"
-    ].join("\n")
-  );
-
-  for (const r of records) {
-    await typewriterAppend(
-      [
-        "",
-        r.year,
-        r.money,
-        r.text,
-        "--------------------------------"
-      ].join("\n")
-    );
-    await sleep(200);
-  }
-
-  if (ligoTailHint) {
-    await typewriterAppend(
-      [
-        "",
-        "NOTE:",
-        "  Some records reference restricted material.",
-        "  " + ligoTailHint
-      ].join("\n")
-    );
-  }
-
-  await typewriterAppend("\n\nTip: ls | back");
-}
-
-
-async function handleLigoQuery(input) {
-
-  typed = "";
-$("#typed").text("");
-  await loadLigoDataOnce();
-
-  if (input === "ARCHIVE") {
-    return renderLigoResults(ligoRecords);
-  }
-
-  if (input === "MILESTONES") {
-  const hits = ligoRecords.filter(isMilestone);
-  return renderLigoStack(hits);
-}
-
-  if (/^\d{4}$/.test(input)) {
-    const hit = ligoRecords.filter(r => r.year.startsWith(input));
-    if (!hit.length) {
-      return printBlock("NO RECORD FOUND FOR " + input);
+      ].join("\n"));
+      await sleep(250);
     }
-    return renderLigoResults(hit);
+
+    if (ligoTailHint) {
+      printBlock("\nNOTE:");
+      printBlock("  Some records reference restricted material.");
+      printBlock("  " + ligoTailHint);
+    }
+
+    printBlock("\nTip: ls | back");
   }
 
-  await fakeDenied("INVALID QUERY");
-  printBlock("Hint: archive | give me milestones | YYYY");
-}
+  async function renderLigoStack(records) {
+    terminal.html("");
+    autoFollow = true;
 
+    await typewriter(
+      [
+        ">> 02_LIGO_FUNDS",
+        "MODE: MILESTONES",
+        "--------------------------------",
+      ].join("\n")
+    );
+
+    for (const r of records) {
+      await typewriterAppend(
+        [
+          "",
+          r.year,
+          r.money,
+          r.text,
+          "--------------------------------",
+        ].join("\n")
+      );
+      await sleep(150);
+    }
+
+    if (ligoTailHint) {
+      await typewriterAppend(
+        [
+          "",
+          "NOTE:",
+          "  Some records reference restricted material.",
+          "  " + ligoTailHint,
+        ].join("\n")
+      );
+    }
+
+    await typewriterAppend("\n\nTip: ls | back");
+  }
+
+  async function handleLigoQuery(inputUpper) {
+    await loadLigoDataOnce();
+
+    if (inputUpper === "ARCHIVE") return renderLigoResults(ligoRecords);
+
+    if (inputUpper === "MILESTONES") {
+      const hits = ligoRecords.filter(isMilestone);
+      return renderLigoStack(hits);
+    }
+
+    if (/^\d{4}$/.test(inputUpper)) {
+      const hits = ligoRecords.filter((r) => r.year.startsWith(inputUpper));
+      if (!hits.length) {
+        return fakeDenied("NO RECORD FOUND FOR " + inputUpper);
+      }
+      return renderLigoResults(hits);
+    }
+
+    await fakeDenied("INVALID QUERY");
+    printBlock("Hint: archive | milestones | YYYY");
+  }
+
+  /* -----------------------------
+     RELOAD SCREEN (for back)
+  ----------------------------- */
+  async function reloadScreen() {
+    // cancel intro gate if leaving intro
+    if (currentScreen !== "intro") {
+      waitingForSpace = false;
+      introVideoActive = false;
+      if ($overlay.length) $overlay.hide();
+      if (video) {
+        video.pause();
+        video.loop = false;
+      }
+    }
+
+    if (currentScreen === "intro") {
+      syncTopbar("intro");
+      showIntroVideo();
+      return;
+    }
+
+    if (currentScreen === "politics") {
+      return playVideoThenLoad("videos/pol.mp4", "./politics.md");
+    }
+
+    if (currentScreen === "capitalism") {
+      const d = await $.get("./af.md");
+      return typewriter(d);
+    }
+
+    if (currentScreen === "syptoms") {
+      const d = await $.get("./syptoms.md");
+      return typewriter(d);
+    }
+
+    if (currentScreen === "ligo") {
+      await showVideo("videos/ligo.mp4");
+      return showLigoBoot();
+    }
+
+    if (currentScreen === "censorship") {
+      return playVideoThenLoad("videos/censor.mp4", "./censor.md");
+    }
+  }
 
   /* -----------------------------
      START
   ----------------------------- */
   syncTopbar("intro");
-  playVideoThenLoad("videos/intro.mp4","./intro.md");
+  showIntroVideo();
 
   /* -----------------------------
      INPUT
   ----------------------------- */
-  $(document).on("keydown", async (e)=>{
+  $(document).on("keydown", async (e) => {
+    // SPACE gate for intro
+    if (currentScreen === "intro" && waitingForSpace && e.code === "Space") {
+      e.preventDefault();
+      clearInputLine();
+      await enterIntro();
+      return;
+    }
 
+    // lock while typing
     if (isTyping) {
-    e.preventDefault();
-    return;
-  }
+      e.preventDefault();
+      return;
+    }
+
     const k = e.key;
 
-    if (k==="ArrowUp"){e.preventDefault();scrollBy(-80);return;}
-    if (k==="ArrowDown"){e.preventDefault();scrollBy(80);return;}
+    // scroll keys
+    if (k === "ArrowUp") { e.preventDefault(); scrollBy(-80); return; }
+    if (k === "ArrowDown") { e.preventDefault(); scrollBy(80); return; }
 
-    if (k==="Enter"){
+    if (k === "Enter") {
       const cmd = typed.trim();
       const U = cmd.toUpperCase();
+
+      // echo command (except during intro gate)
       print(cmd);
 
+      // DEV OVERRIDE (hidden)
       if (cmd.startsWith(DEV_PREFIX)) {
-  clearInputLine();          
+        clearInputLine();
 
-  const forceCmd = cmd.slice(1).trim().toUpperCase();
-  if (forceCmd.startsWith("OPEN ")) {
-    const d = forceCmd.split(" ")[1];
+        const forceCmd = cmd.slice(1).trim().toUpperCase();
+        if (forceCmd.startsWith("OPEN ")) {
+          const d = forceCmd.split(" ")[1];
+          terminal.html("");
+          autoFollow = true;
+          await openDir(d, true);
+        }
+        return;
+      }
 
-    terminal.html("");       
-    autoFollow = true;
-
-    await openDir(d, true);
-  }
-  return;
-}
-
-      if (U==="LS") showLS();
-      else if (U==="CLEAR") terminal.html("");
-      else if (U==="BACK") goBack();
+      if (U === "LS") showLS();
+      else if (U === "CLEAR") terminal.html("");
+      else if (U === "BACK") goBack();
       else if (U.startsWith("OPEN ")) {
         const d = U.split(" ")[1];
-        await openDir(d,false);
+        await openDir(d, false);
       }
 
       // STORY UNLOCKS
-      else if (U==="DISMANTLE SYSTEM") {
-  permissions["01"] = true;
-  pushScreen("politics");
-  await playVideoThenLoad("videos/pol.mp4","./politics.md");
-}
-else if (U==="DONE WITH CAPITALISM") {
-  permissions["02"] = true;
-  pushScreen("ligo");
-  await showVideo("videos/ligo.mp4");
-  showLigoBoot();
-}
-else if (U==="CENSORSHIP IS SO 1984") {
-  permissions["03"] = true;
-  pushScreen("censorship");
-  await playVideoThenLoad("videos/censor.mp4","./censor.md");
-}
+      else if (U === "DISMANTLE SYSTEM") {
+        permissions["01"] = true;
+        pushScreen("politics");
+        await playVideoThenLoad("videos/pol.mp4", "./politics.md");
+      } else if (U === "DONE WITH CAPITALISM") {
+        permissions["02"] = true;
+        pushScreen("ligo");
+        await showVideo("videos/ligo.mp4");
+        await showLigoBoot();
+      } else if (U === "CENSORSHIP IS SO 1984") {
+        permissions["03"] = true;
+        pushScreen("censorship");
+        await playVideoThenLoad("videos/censor.mp4", "./censor.md");
+      } else if (U === "EXIT THE LOOP") {
+        // reset back to intro gate
+        screenStack.length = 0;
+        currentScreen = "intro";
+        syncTopbar("intro");
+        showIntroVideo();
+        clearInputLine();
+        return;
+      }
 
+      // LIGO queries
       else if (currentScreen === "ligo") {
-  typed = "";
-  $("#typed").text("");
-  await handleLigoQuery(U);
-  return;
-}
+        clearInputLine();
+        await handleLigoQuery(U);
+        return;
+      }
+
       else {
         await fakeDenied("UNKNOWN COMMAND");
         printBlock("Hint: type ls");
       }
 
-      typed="";$("#typed").text("");
+      clearInputLine();
       return;
     }
 
-    if (k==="Backspace"){
-      typed=typed.slice(0,-1);
+    if (k === "Backspace") {
+      typed = typed.slice(0, -1);
       $("#typed").text(typed);
       return;
     }
 
-    if (k.length===1 && !e.ctrlKey && !e.metaKey && !e.altKey){
-      typed+=k;
+    // prevent space from typing into the prompt while intro video is waiting
+    if (currentScreen === "intro" && waitingForSpace && e.code === "Space") {
+      e.preventDefault();
+      return;
+    }
+
+    if (k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      typed += k;
       $("#typed").text(typed);
     }
   });
